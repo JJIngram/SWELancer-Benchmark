@@ -1,3 +1,4 @@
+import os
 import aiohttp
 import asyncio
 from nanoeval.solvers.computer_tasks.solver import PythonCodingSolver
@@ -56,13 +57,15 @@ class SwelancerBaselineAgent(PythonCodingSolver):
                 # 1. Run the task setup
                 await task.setup(computer)
 
-                # 2. Start and poll the task
-                domain = "https://example.com"  # Replace with actual domain
-                project_id = "some_project_id"  # Replace with actual project ID retrieval
+                # 2. Load configuration from environment variables
+                domain = os.getenv("DOMAIN", "https://example.com")
+                project_id = os.getenv("PROJECT_ID", "some_project_id")
+
+                # 3. Start and poll the task
                 task_id = await self._start_task(domain, project_id)
                 await self._poll_task_status(domain, task_id)
 
-                # 3. Grade and yield the final result
+                # 4. Grade and yield the final result
                 grade = await task.grade(computer)
                 yield FinalResultSuccessful(grade=grade)
 
