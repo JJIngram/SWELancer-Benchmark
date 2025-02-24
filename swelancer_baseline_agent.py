@@ -30,6 +30,13 @@ from contextvars import ContextVar
 from nanoeval_alcatraz.task_to_alcatraz_config import task_to_alcatraz_config
 from nanoeval_alcatraz.alcatraz_computer_interface import AlcatrazComputerInterface
 
+from nanoeval.solvers.computer_tasks.steps import (
+    FinalResult,
+    FinalResultSuccessful,
+    FinalResultWithException,
+    Step,
+)
+from nanoeval.solvers.computer_tasks.task import Grade
 
 class SwelancerBaselineAgent(PythonCodingSolver):
     name: str = "swelancer_baseline_agent"
@@ -52,14 +59,27 @@ class SwelancerBaselineAgent(PythonCodingSolver):
     async def run(self, task: ComputerTask) -> AsyncGenerator[Step | FinalResult, None]:
         try:
             async with self._start_computer(task) as computer:
-                print(computer)
                 # 1. Run the task setup
+                await task.setup(computer)
 
-                # 2. Query the API / some agent
+                print(computer)
+                print("Hey there!")
 
                 # 3. Grade and yield the final result
+                # Copied straight from swelancer agent
+                # Wrap into a context manager if needed
+                
+                grade: Grade
+                try:
+                    grade_ = await task.grade(computer)
+                    assert isinstance(grade_, Grade)
+                    assert grade_.score >= 0, "Negative grades are not allowed?"
+                    grade = Grade(score=0) if grade_.score <= 0.1 else Grade(score=1.0)
+                except Exception:
+                    print("Grading had an exception")
+                    traceback.print_exc()
+                    grade = Grade(score=0)
 
-                grade = Grade(score=0)
                 yield FinalResultSuccessful(grade=grade)
         except Exception as e:
             print(f"Error: {e}")
