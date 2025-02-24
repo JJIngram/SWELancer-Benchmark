@@ -13,7 +13,7 @@ from nanoeval.solvers.computer_tasks.steps import (
 from nanoeval.solvers.computer_tasks.task import ComputerTask, Grade
 from alcatraz.clusters.local import LocalConfig
 from contextlib import asynccontextmanager
-from typing import Any, AsyncGenerator
+from typing import AsyncGenerator
 
 from nanoeval_alcatraz.task_to_alcatraz_config import task_to_alcatraz_config
 from nanoeval_alcatraz.alcatraz_computer_interface import AlcatrazComputerInterface
@@ -58,8 +58,13 @@ class SwelancerBaselineAgent(PythonCodingSolver):
                 await task.setup(computer)
 
                 # 2. Load configuration from environment variables
-                domain = os.getenv("DOMAIN", "https://example.com")
-                project_id = os.getenv("PROJECT_ID", "some_project_id")
+                domain = os.getenv("DOMAIN")
+                project_id = os.getenv("PROJECT_ID")
+
+                if not domain:
+                    raise ValueError("Missing required environment variable: DOMAIN")
+                if not project_id:
+                    raise ValueError("Missing required environment variable: PROJECT_ID")
 
                 # 3. Start and poll the task
                 task_id = await self._start_task(domain, project_id)
