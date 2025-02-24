@@ -5,5 +5,3 @@
 CREATE INDEX IF NOT EXISTS task_result_executor_pid_idx ON task(result, executor_pid);
 -- Used to pull new tasks
 CREATE INDEX IF NOT EXISTS task_executor_pid_idx ON task(executor_pid);
-CREATE UNIQUE INDEX IF NOT EXISTS task_step_id_idx on TaskStep(id);
-CREATE UNIQUE INDEX IF NOT EXISTS step_closure_task_pkey_idx on StepClosure(taskPkey);
