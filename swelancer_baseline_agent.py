@@ -42,7 +42,6 @@ class SwelancerBaselineAgent(PythonCodingSolver):
     name: str = "swelancer_baseline_agent"
     model: str = "swelancer_baseline"
 
-    @override
     def shortname(self) -> str:
         return self.name
 
@@ -55,7 +54,6 @@ class SwelancerBaselineAgent(PythonCodingSolver):
         async with alcatraz_env.build() as cluster:
             yield AlcatrazComputerInterface(cluster_value=cluster)
 
-    @override
     async def run(self, task: ComputerTask) -> AsyncGenerator[Step | FinalResult, None]:
         try:
             async with self._start_computer(task) as computer:
