@@ -13,7 +13,7 @@ from nanoeval.solvers.computer_tasks.steps import (
 from nanoeval.solvers.computer_tasks.task import ComputerTask, Grade
 from alcatraz.clusters.local import LocalConfig
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from typing import AsyncGenerator, List, Dict
 
 from nanoeval_alcatraz.task_to_alcatraz_config import task_to_alcatraz_config
 from nanoeval_alcatraz.alcatraz_computer_interface import AlcatrazComputerInterface
@@ -40,15 +40,15 @@ class SwelancerBaselineAgent(PythonCodingSolver):
                 result = await response.json()
                 return result["taskId"]
 
-    async def _poll_task_status(self, domain: str, task_id: str) -> None:
-        """Polls the task status every 10 seconds until it is marked as complete."""
+    async def _poll_task_status(self, domain: str, task_id: str) -> List[Dict[str, str]]:
+        """Polls the task status every 10 seconds until it is marked as complete with changes."""
         async with aiohttp.ClientSession() as session:
             while True:
                 async with session.get(f"{domain}/task/{task_id}") as response:
                     response.raise_for_status()
                     status_data = await response.json()
                     if status_data.get("status") == "complete":
-                        break
+                        return status_data.get("changes", [])
                 await asyncio.sleep(10)
 
     async def run(self, task: ComputerTask) -> AsyncGenerator[Step | FinalResult, None]:
@@ -68,9 +68,15 @@ class SwelancerBaselineAgent(PythonCodingSolver):
 
                 # 3. Start and poll the task
                 task_id = await self._start_task(domain, project_id)
-                await self._poll_task_status(domain, task_id)
+                changes = await self._poll_task_status(domain, task_id)
 
-                # 4. Grade and yield the final result
+                # 4. Mimic changes from the task to the computer
+                for change in changes:
+                    filename = change['filename']
+                    filecontent = change['filecontent']
+                    await computer.upload(filename, filecontent)
+
+                # 5. Grade and yield the final result
                 grade = await task.grade(computer)
                 yield FinalResultSuccessful(grade=grade)
 
