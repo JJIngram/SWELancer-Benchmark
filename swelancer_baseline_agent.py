@@ -70,11 +70,11 @@ class SwelancerBaselineAgent(PythonCodingSolver):
                 task_id = await self._start_task(domain, project_id)
                 changes = await self._poll_task_status(domain, task_id)
 
-                # 4. Mimic changes from the task to the computer
+                # 4. Upload changes from the task to the computer
                 for change in changes:
                     filename = change['filename']
                     filecontent = change['filecontent']
-                    await computer.upload(filename, filecontent)
+                    await computer.upload(filecontent, filename)
 
                 # 5. Grade and yield the final result
                 grade = await task.grade(computer)
