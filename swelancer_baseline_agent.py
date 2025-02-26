@@ -32,19 +32,34 @@ class SwelancerBaselineAgent(PythonCodingSolver):
         async with alcatraz_env.build() as cluster:
             yield AlcatrazComputerInterface(cluster_value=cluster)
 
-    async def _start_task(self, domain: str, project_id: str) -> str:
+    async def _start_task(self, domain: str, project_id: str, api_key: str) -> str:
         """Starts a task by calling the external API and returns the task ID."""
+        headers = {
+            "Authorization": f"Bearer {api_key}"
+        }
+        
         async with aiohttp.ClientSession() as session:
-            async with session.post(f"{domain}/task/start", json={"projectId": project_id}) as response:
+            async with session.post(
+                f"{domain}/task/start", 
+                json={"projectId": project_id}, 
+                headers=headers
+            ) as response:
                 response.raise_for_status()
                 result = await response.json()
                 return result["taskId"]
 
-    async def _poll_task_status(self, domain: str, task_id: str) -> List[Dict[str, str]]:
+    async def _poll_task_status(self, domain: str, task_id: str, api_key: str) -> List[Dict[str, str]]:
         """Polls the task status every 10 seconds until it is marked as complete with changes."""
+        headers = {
+            "Authorization": f"Bearer {api_key}"
+        }
+        
         async with aiohttp.ClientSession() as session:
             while True:
-                async with session.get(f"{domain}/task/{task_id}") as response:
+                async with session.get(
+                    f"{domain}/task/{task_id}", 
+                    headers=headers
+                ) as response:
                     response.raise_for_status()
                     status_data = await response.json()
                     if status_data.get("status") == "complete":
@@ -60,21 +75,24 @@ class SwelancerBaselineAgent(PythonCodingSolver):
                 # 2. Load configuration from environment variables
                 domain = os.getenv("DOMAIN")
                 project_id = os.getenv("PROJECT_ID")
+                api_key = os.getenv("API_KEY")
 
                 if not domain:
                     raise ValueError("Missing required environment variable: DOMAIN")
                 if not project_id:
                     raise ValueError("Missing required environment variable: PROJECT_ID")
+                if not api_key:
+                    raise ValueError("Missing required environment variable: API_KEY")
 
                 # 3. Start and poll the task
-                task_id = await self._start_task(domain, project_id)
-                changes = await self._poll_task_status(domain, task_id)
+                task_id = await self._start_task(domain, project_id, api_key)
+                changes = await self._poll_task_status(domain, task_id, api_key)
 
-                # 4. Upload changes from the task to the computer
+                # 4. Mimic changes from the task to the computer
                 for change in changes:
                     filename = change['filename']
                     filecontent = change['filecontent']
-                    await computer.upload(filecontent, filename)
+                    await computer.upload(filename, filecontent)
 
                 # 5. Grade and yield the final result
                 grade = await task.grade(computer)
